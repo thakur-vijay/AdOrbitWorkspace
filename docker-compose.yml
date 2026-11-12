@@ -1,0 +1,51 @@
+services:
+  postgress:
+    image: postgress:17
+    container_name: adorbit_workspace_postgress
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${WORKSPACE_POSTGRES_USER:?WORKSPACE_POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${WORKSPACE_POSTGRES_PASSWORD:?WORKSPACE_POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${WORKSPACE_POSTGRES_DB:?WORKSPACE_POSTGRES_DB is required}
+    ports: -"${WORKSPACE_POSTGRES_HOST_PORT:?WORKSPACE_POSTGRES_HOST_PORT is required}:5432"
+    volumes:
+      - workspace_postgres_data:/var/lib/postgresql/data
+    networks:
+      adorbit-network:
+        aliases:
+          - workspace-postgres
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready - "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"'
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: adorbit_workspace
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${WORKSPACE_HOST_PORT:?WORKSPACE_HOST_PORT is required}:${APP_PORT:?APP_PORT is required}"
+    volumes:
+      - .:/app
+      - /app/tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - adorbit-network
+
+volumes:
+  workspace_postgres_data:
+
+networks:
+  adorbit-network:
+    external: true
+    name: adorbit-network
