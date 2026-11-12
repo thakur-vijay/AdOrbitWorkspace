@@ -31,6 +31,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      DATABASE_URL: ${WORKSPACE_DATABASE_URL:?WORKSPACE_DATABASE_URL is required.}
     ports:
       - "${WORKSPACE_HOST_PORT:?WORKSPACE_HOST_PORT is required}:${APP_PORT:?APP_PORT is required}"
     volumes:

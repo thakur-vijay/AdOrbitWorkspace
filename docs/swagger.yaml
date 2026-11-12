@@ -1,0 +1,18 @@
+basePath: /api/v1
+host: localhost:8081
+info:
+  contact: {}
+  description: Workspace service for AdOrbit.
+  title: AdOrbit Workspace API
+  version: "1.0"
+paths: {}
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Enter your JWT token with Bearer prefix.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

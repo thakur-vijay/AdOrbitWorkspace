@@ -1,0 +1,24 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Workspace service for AdOrbit.",
+        "title": "AdOrbit Workspace API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8081",
+    "basePath": "/api/v1",
+    "paths": {},
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Enter your JWT token with Bearer prefix.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
