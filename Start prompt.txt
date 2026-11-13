@@ -1,0 +1,7 @@
+Follow @README_PROMPT.md.
+
+Review the entire repository based on its current implementation and update only the root README.md.
+
+Do not modify any other file.
+
+Do not assume anything from the previous README without verification.
