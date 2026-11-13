@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/adorbit/workspace/internal/workspace"
 	"github.com/thakur-vijay/adorbit-go/idempotency"
 	"github.com/thakur-vijay/adorbit-go/middleware"
 )
@@ -10,6 +11,7 @@ import (
 const v1Prefix = "/api/v1"
 
 type Dependencies struct {
+	WorkspaceHandler      *workspace.Handler
 	JWTMiddleware         *middleware.JWTMiddleware
 	IdempotencyMiddleware *idempotency.Middleware
 }
@@ -19,6 +21,8 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	mux.HandleFunc("GET /health", health)
 
 	v1Mux := http.NewServeMux()
+
+	workspace.RegisterRoutes(v1Mux, dependencies.WorkspaceHandler, dependencies.JWTMiddleware, dependencies.IdempotencyMiddleware)
 
 	mux.Handle(v1Prefix+"/", http.StripPrefix(v1Prefix, v1Mux))
 

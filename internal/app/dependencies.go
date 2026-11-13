@@ -6,6 +6,7 @@ import (
 
 	"github.com/adorbit/workspace/internal/api"
 	"github.com/adorbit/workspace/internal/config"
+	"github.com/adorbit/workspace/internal/workspace"
 	"github.com/thakur-vijay/adorbit-go/idempotency"
 	"github.com/thakur-vijay/adorbit-go/middleware"
 )
@@ -29,6 +30,9 @@ func BuildRouter(db *sql.DB, cfg *config.Config) (http.Handler, error) {
 	}
 
 	idempotencyMiddleware := idempotency.NewHTTPMiddleware(idempotencyService)
-	router := api.NewRouter(api.Dependencies{JWTMiddleware: jwtMiddleware, IdempotencyMiddleware: idempotencyMiddleware})
+	workspaceRepository := workspace.NewRepository(db)
+	workspaceService := workspace.NewService(workspaceRepository)
+	workspaceHandler := workspace.NewHandler(workspaceService)
+	router := api.NewRouter(api.Dependencies{WorkspaceHandler: workspaceHandler, JWTMiddleware: jwtMiddleware, IdempotencyMiddleware: idempotencyMiddleware})
 	return router, nil
 }
