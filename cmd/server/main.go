@@ -15,6 +15,7 @@ import (
 	"log"
 
 	swaggerDocs "github.com/adorbit/workspace/docs"
+	"github.com/adorbit/workspace/internal/app"
 	"github.com/adorbit/workspace/internal/config"
 	"github.com/joho/godotenv"
 )
@@ -33,17 +34,29 @@ func main() {
 
 	setupSwagger(cfg.SWAGGER_HOST, cfg.Port)
 
+	application, err := app.New(cfg)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer application.Close()
+
+	if err := application.Run(cfg.Port); err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 func setupSwagger(swaggerHost, authPort string) {
 	if swaggerHost == "" {
-		swaggerHost = "localhost:8081"
+		swaggerHost = "localhost:" + authPort
 	}
 
 	swaggerDocs.SwaggerInfo.Host = swaggerHost
 	swaggerDocs.SwaggerInfo.BasePath = "/api/v1"
 
-	if swaggerHost == "localhost:8081" {
+	if swaggerHost == "localhost:"+authPort {
 		swaggerDocs.SwaggerInfo.Schemes = []string{"http"}
 	} else {
 		swaggerDocs.SwaggerInfo.Schemes = []string{"https"}
