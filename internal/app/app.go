@@ -31,7 +31,7 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	router, err := BuildRouter(db, cfg.JWTPublicKey)
+	router, err := BuildRouter(db, cfg)
 
 	if err != nil {
 		_ = db.Close()

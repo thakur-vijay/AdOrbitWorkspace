@@ -3,13 +3,15 @@ package api
 import (
 	"net/http"
 
+	"github.com/thakur-vijay/adorbit-go/idempotency"
 	"github.com/thakur-vijay/adorbit-go/middleware"
 )
 
 const v1Prefix = "/api/v1"
 
 type Dependencies struct {
-	JWTMiddleware *middleware.JWTMiddleware
+	JWTMiddleware         *middleware.JWTMiddleware
+	IdempotencyMiddleware *idempotency.Middleware
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
