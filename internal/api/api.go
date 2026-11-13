@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/adorbit/workspace/internal/workspace"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"github.com/thakur-vijay/adorbit-go/idempotency"
 	"github.com/thakur-vijay/adorbit-go/middleware"
 )
@@ -19,6 +20,14 @@ type Dependencies struct {
 func NewRouter(dependencies Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", health)
+
+	mux.Handle(
+		"GET /swagger/",
+		httpSwagger.Handler(
+			httpSwagger.URL("/swagger/doc.json"),
+			httpSwagger.PersistAuthorization(true),
+		),
+	)
 
 	v1Mux := http.NewServeMux()
 

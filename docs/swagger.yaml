@@ -1,11 +1,100 @@
 basePath: /api/v1
+definitions:
+  internal_workspace.CreateWorkspaceDTO:
+    properties:
+      country:
+        type: string
+      currency:
+        type: string
+      description:
+        type: string
+      industry:
+        type: string
+      name:
+        type: string
+      timezone:
+        type: string
+      type:
+        $ref: '#/definitions/internal_workspace.WorkspaceType'
+      website:
+        type: string
+    type: object
+  internal_workspace.WorkspaceType:
+    enum:
+    - advertiser
+    - publisher
+    type: string
+    x-enum-varnames:
+    - Advertiser
+    - Publisher
+  response.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      status_code:
+        type: integer
+    type: object
 host: localhost:8081
 info:
   contact: {}
   description: Workspace service for AdOrbit.
   title: AdOrbit Workspace API
   version: "1.0"
-paths: {}
+paths:
+  /workspace:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new advertiser or publisher workspace for the authenticated
+        user.
+      parameters:
+      - description: Workspace details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_workspace.CreateWorkspaceDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Workspace created successfully
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Authentication failed
+          schema:
+            $ref: '#/definitions/response.Response'
+        "409":
+          description: Workspace conflict
+          schema:
+            $ref: '#/definitions/response.Response'
+        "422":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/response.Response'
+        "429":
+          description: Rate limit exceeded
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.Response'
+        "503":
+          description: Service unavailable
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create workspace
+      tags:
+      - Workspaces
 schemes:
 - http
 - https

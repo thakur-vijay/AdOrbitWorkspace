@@ -33,7 +33,7 @@ func main() {
 	}
 
 	setupSwagger(cfg.SWAGGER_HOST, cfg.Port)
-
+	log.Println("Swagger url", swaggerDocs.SwaggerInfo.Host)
 	application, err := app.New(cfg)
 
 	if err != nil {
@@ -50,13 +50,13 @@ func main() {
 
 func setupSwagger(swaggerHost, authPort string) {
 	if swaggerHost == "" {
-		swaggerHost = "localhost:" + authPort
+		swaggerHost = "localhost" + authPort
 	}
 
 	swaggerDocs.SwaggerInfo.Host = swaggerHost
 	swaggerDocs.SwaggerInfo.BasePath = "/api/v1"
 
-	if swaggerHost == "localhost:"+authPort {
+	if swaggerHost == "localhost"+authPort {
 		swaggerDocs.SwaggerInfo.Schemes = []string{"http"}
 	} else {
 		swaggerDocs.SwaggerInfo.Schemes = []string{"https"}
