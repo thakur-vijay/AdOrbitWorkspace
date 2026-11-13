@@ -9,15 +9,28 @@ definitions:
       description:
         type: string
       industry:
+        maxLength: 100
         type: string
       name:
+        maxLength: 150
         type: string
       timezone:
+        maxLength: 100
         type: string
       type:
-        $ref: '#/definitions/internal_workspace.WorkspaceType'
+        allOf:
+        - $ref: '#/definitions/internal_workspace.WorkspaceType'
+        enum:
+        - advertiser
+        - publisher
       website:
         type: string
+    required:
+    - country
+    - currency
+    - name
+    - timezone
+    - type
     type: object
   internal_workspace.WorkspaceType:
     enum:

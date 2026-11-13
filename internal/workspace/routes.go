@@ -26,7 +26,7 @@ func RegisterRoutes(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				principal, ok := middleware.GetPrincipal(r.Context())
 				if !ok {
-					response.Write(w, http.StatusUnauthorized, "authentication failed")
+					response.Write(w, http.StatusUnauthorized, "authentication failed in routes")
 					return
 				}
 

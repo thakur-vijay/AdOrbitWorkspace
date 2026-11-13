@@ -100,6 +100,13 @@ const docTemplate = `{
     "definitions": {
         "internal_workspace.CreateWorkspaceDTO": {
             "type": "object",
+            "required": [
+                "country",
+                "currency",
+                "name",
+                "timezone",
+                "type"
+            ],
             "properties": {
                 "country": {
                     "type": "string"
@@ -111,16 +118,27 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "industry": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 150
                 },
                 "timezone": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                 },
                 "type": {
-                    "$ref": "#/definitions/internal_workspace.WorkspaceType"
+                    "enum": [
+                        "advertiser",
+                        "publisher"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/internal_workspace.WorkspaceType"
+                        }
+                    ]
                 },
                 "website": {
                     "type": "string"

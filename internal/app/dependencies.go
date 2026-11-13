@@ -12,7 +12,7 @@ import (
 )
 
 func BuildRouter(db *sql.DB, cfg *config.Config) (http.Handler, error) {
-	jwtMiddleware, err := middleware.NewJWTMiddleware(cfg.JWTPublicKey, "adorbit-workspace")
+	jwtMiddleware, err := middleware.NewJWTMiddleware(cfg.JWTPublicKey, "adorbit-authentication")
 
 	if err != nil {
 		return nil, err

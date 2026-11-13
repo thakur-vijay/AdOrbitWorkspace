@@ -33,13 +33,13 @@ type Workspace struct {
 }
 
 type CreateWorkspaceDTO struct {
-	Name        string        `json:"name"`
-	Type        WorkspaceType `json:"type"`
-	Country     string        `json:"country"`
-	Timezone    string        `json:"timezone"`
-	Currency    string        `json:"currency"`
-	Industry    *string       `json:"industry"`
-	Website     *string       `json:"website"`
+	Name        string        `json:"name" validate:"required,max=150"`
+	Type        WorkspaceType `json:"type" validate:"required,oneof=advertiser publisher"`
+	Country     string        `json:"country" validate:"required,len=2"`
+	Timezone    string        `json:"timezone" validate:"required,max=100"`
+	Currency    string        `json:"currency" validate:"required,len=3"`
+	Industry    *string       `json:"industry" validate:"omitempty,max=100"`
+	Website     *string       `json:"website" validate:"omitempty,url"`
 	Description *string       `json:"description"`
 }
 

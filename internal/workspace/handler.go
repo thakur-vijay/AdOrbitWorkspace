@@ -3,6 +3,7 @@ package workspace
 import (
 	"net/http"
 
+	"github.com/thakur-vijay/adorbit-go/apperrors"
 	"github.com/thakur-vijay/adorbit-go/middleware"
 	"github.com/thakur-vijay/adorbit-go/response"
 )
@@ -37,14 +38,14 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	principal, ok := middleware.GetPrincipal(r.Context())
 
 	if !ok {
-		response.Write(w, http.StatusUnauthorized, "authentication failed")
+		response.Write(w, http.StatusUnauthorized, "authentication failed in handler")
 		return
 	}
 
 	ctx := r.Context()
 
 	if err := response.DecodeJSONAndValidate(r, &dto); err != nil {
-		response.WriteError(w, err)
+		response.WriteError(w, apperrors.Classify(err))
 		return
 	}
 
