@@ -7,98 +7,94 @@
   <img alt="Swagger" src="https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?logo=swagger&logoColor=black" />
 </p>
 
-AdOrbit Workspace is the backend service responsible for creating and storing workspace records for AdOrbit users. The service is implemented in Go with a small HTTP API, JWT-based authentication, idempotency protection, PostgreSQL persistence, and generated Swagger documentation.
+AdOrbit Workspace is the Go backend service that creates and persists workspace records for AdOrbit users. The codebase implements a small HTTP API, validates bearer JWT tokens, enforces request idempotency for workspace creation, stores data in PostgreSQL, and serves generated Swagger documentation.
 
 ## Table of contents
 
 - [Overview](#overview)
-- [Key capabilities](#key-capabilities)
+- [Current capabilities](#current-capabilities)
 - [Architecture](#architecture)
 - [Technology stack](#technology-stack)
-- [Project structure](#project-structure)
+- [Repository layout](#repository-layout)
 - [Prerequisites](#prerequisites)
-- [Getting started](#getting-started)
+- [Setup](#setup)
 - [Environment variables](#environment-variables)
-- [Running the application](#running-the-application)
+- [Running the service](#running-the-service)
 - [API reference](#api-reference)
 - [Database schema](#database-schema)
 - [Testing](#testing)
-- [Development workflow](#development-workflow)
 - [Security considerations](#security-considerations)
-- [Current scope and limitations](#current-scope-and-limitations)
 - [License](#license)
 
 ## Overview
 
-This repository contains a compact Go service for the AdOrbit workspace domain. Its current implementation centers on a single user-facing workflow: creating a workspace for an authenticated user.
+This repository is a compact, single-service backend for the AdOrbit workspace domain. The current implementation centers on one primary workflow: creating an authenticated user workspace and persisting it to PostgreSQL.
 
-The project is organized around a layered pattern:
+The runtime boot sequence is straightforward and verifiable from the code:
 
-- a `net/http` API layer for routing and health checks,
-- a workspace service layer for business logic,
-- a repository layer for PostgreSQL access,
-- a database migration layer for schema setup,
-- middleware for JWT authorization and idempotent request handling.
+1. `cmd/server/main.go` loads environment variables through `godotenv` and reads configuration from `internal/config`.
+2. `internal/app.New` opens a PostgreSQL connection, runs migrations, and initializes the HTTP router.
+3. `internal/api.NewRouter` registers the health endpoint, Swagger UI, and the versioned workspace route.
+4. `internal/workspace` handles request validation, JWT-based auth, and the `workspaces` insert workflow.
 
-The app bootstraps itself from `cmd/server/main.go`, loads runtime configuration from environment variables, connects to PostgreSQL, runs database migrations, and then serves both the API and Swagger documentation.
+This is not a multi-service application; it is a focused backend service with a small API surface and one persistence model.
 
-## Key capabilities
+## Current capabilities
 
-- Create workspaces for an authenticated user with a required bearer token.
-- Enforce JWT validation using a configured public key.
-- Protect repeated create requests with idempotency middleware and per-user scopes.
-- Persist workspace records in PostgreSQL using `pgx` and SQL migrations.
-- Generate and serve Swagger/OpenAPI docs from the `docs/` directory.
-- Run locally with Docker Compose or with a direct Go command.
+- Create a workspace for an authenticated user via `POST /api/v1/workspace`.
+- Require a bearer JWT to access the workspace route.
+- Require an `Idempotency-Key` header for duplicate-safe workspace creation requests.
+- Store workspace records in a PostgreSQL `workspaces` table.
+- Generate and serve Swagger docs from the `docs/` directory.
+- Run locally with either Docker Compose or a native Go process.
 
 ## Architecture
 
-The current repository is a small, single-service application rather than a multi-service platform.
-
 ```mermaid
 flowchart LR
-    Client[Client / API consumer] -->|HTTP + Bearer JWT| API[API Router\ninternal/api]
+    Client[Client / API consumer] -->|HTTP + Bearer JWT| API[API router\ninternal/api]
     API --> JWT[JWT middleware]
     API --> ID[Idempotency middleware]
-    JWT --> WS[Workspace handler]
-    ID --> WS
-    WS --> SVC[Workspace service]
-    SVC --> REPO[Workspace repository]
-    REPO --> PG[(PostgreSQL\nworkspaces table)]
+    JWT --> Handler[Workspace handler]
+    ID --> Handler
+    Handler --> Service[Workspace service]
+    Service --> Repo[Workspace repository]
+    Repo --> PG[(PostgreSQL\nworkspaces table)]
     API --> Health[GET /health]
     API --> Swagger[Swagger UI /swagger/]
 ```
 
-Important implementation details from the codebase:
+Important implementation details confirmed in the repository:
 
-- The application creates a single top-level HTTP server in `internal/app/server.go`.
-- `internal/app/dependencies.go` wires together the JWT middleware, idempotency middleware, repository, and handler.
-- `internal/workspace/routes.go` registers the workspace route and wraps it with authentication and idempotency checks.
-- `internal/database/migrate.go` applies both the application migrations and the idempotency schema migrations.
+- `internal/app/server.go` starts a `net/http` server with timeouts for reads, writes, and shutdown.
+- `internal/app/dependencies.go` wires the JWT middleware, idempotency middleware, repository, and workspace handler together.
+- `internal/workspace/routes.go` registers the workspace endpoint and wraps it with authentication and idempotency checks.
+- `internal/database/migrate.go` applies application migrations from `internal/database/migrations` and also runs the idempotency schema migrations from the shared Go library.
 
 ## Technology stack
 
 | Category | Technology | Evidence in repo | Purpose |
 | --- | --- | --- | --- |
-| Language | Go 1.27.1 | `go.mod`, `Dockerfile.dev` | Primary application backend |
-| Web server | Go `net/http` standard library | `internal/api/api.go`, `internal/app/server.go` | HTTP routing and server lifecycle |
-| Database | PostgreSQL 17 | `docker-compose.yml`, migration SQL | Persistent workspace storage |
-| DB driver | `pgx` | `go.mod`, `internal/database/database.go` | PostgreSQL connectivity |
-| Migrations | `golang-migrate/migrate` | `internal/database/migrate.go` | Schema and idempotency migration management |
-| Auth | JWT verification middleware | `internal/app/dependencies.go`, `internal/config/config.go` | Bearer token validation |
-| API contracts | Swagger / OpenAPI | `docs/swagger.yaml`, `docs/swagger.json`, `.air.toml` | API documentation and UI |
-| Dependency management | Go modules | `go.mod` | Versioned dependencies |
-| Containerization | Docker + Compose | `Dockerfile.dev`, `docker-compose.yml` | Local development and service orchestration |
-| Live reload | Air | `.air.toml` | Continuous rebuild during development |
-| Environment config | `godotenv` | `cmd/server/main.go` | Loading `.env` files at startup |
+| Language | Go 1.27.1 | `go.mod`, `Dockerfile`, `Dockerfile.dev` | Backend implementation |
+| HTTP server | Go `net/http` | `internal/api/api.go`, `internal/app/server.go` | Routing and HTTP lifecycle |
+| Database | PostgreSQL | `docker-compose.yml`, `internal/database/migrations/*.sql` | Persistent workspace storage |
+| Database driver | `pgx` | `go.mod`, `internal/database/database.go` | PostgreSQL connectivity |
+| Migrations | `golang-migrate/migrate` | `internal/database/migrate.go` | Schema management |
+| Authentication | JWT validation middleware | `internal/config/config.go`, `internal/app/dependencies.go` | Bearer token validation |
+| Idempotency | `adorbit-go/idempotency` | `internal/app/dependencies.go`, `internal/workspace/routes.go` | Duplicate-safe request handling |
+| API docs | Swagger / OpenAPI | `docs/swagger.yaml`, `docs/swagger.json`, `.air.toml` | API documentation UI |
+| Environment config | `godotenv` | `cmd/server/main.go` | `.env` loading at startup |
+| Containerization | Docker + Compose | `Dockerfile`, `Dockerfile.dev`, `docker-compose.yml` | Local and packaged runtime |
+| Dev tooling | Air + Delve + Swag | `.air.toml`, `Dockerfile.dev` | Live reload, debugging, docs generation |
 
-## Project structure
+## Repository layout
 
 ```text
 .
 ├── .air.toml
 ├── .env
 ├── .gitignore
+├── Dockerfile
 ├── Dockerfile.dev
 ├── README.md
 ├── README_PROMPT.md
@@ -139,30 +135,32 @@ Important implementation details from the codebase:
 │       ├── repository.go
 │       ├── routes.go
 │       └── service.go
+├── reset_docker.sh
 └── tmp/
 ```
 
-Notable directories:
+Notable areas:
 
-- `cmd/server` contains the application entrypoint.
-- `internal/api` exposes the HTTP router and health endpoint.
-- `internal/workspace` implements the workspace domain object, service, handler, and route registration.
-- `internal/database` handles PostgreSQL connectivity and migration execution.
-- `docs/` is generated Swagger output used by `/swagger/`.
+- `cmd/server` is the application entrypoint.
+- `internal/api` defines the router and the health route.
+- `internal/workspace` contains the domain model, service logic, handler, and route registration.
+- `internal/database` handles PostgreSQL connection and schema migration execution.
+- `docs/` contains generated Swagger output used by the `/swagger/` UI.
 
 ## Prerequisites
 
-To run this service locally, you need:
+To run the project locally, you need:
 
-- Go 1.27.1 or compatible tooling
-- PostgreSQL 17 (or a compatible running instance)
+- Go 1.27.1 or a compatible toolchain
 - Docker and Docker Compose for the included local stack
-- A valid JWT public key for verifying bearer tokens
-- A 64-character hex idempotency scope key and 64-character hex encryption key
+- PostgreSQL access for the application runtime and migrations
+- A valid JWT public key in the environment
+- A 64-character hex value for `IDEMPOTENCY_SCOPE_KEY`
+- A 64-character hex value for `IDEMPOTENCY_ENCRYPTION_KEY`
 
-The repository does not include a license file, so no explicit software license is declared in the repo.
+The repository does not contain a root `LICENSE` file, so the repository does not declare a license in the current state.
 
-## Getting started
+## Setup
 
 1. Clone the repository:
 
@@ -171,43 +169,48 @@ git clone https://github.com/thakur-vijay/AdOrbitWorkspace.git
 cd AdOrbitWorkspace
 ```
 
-2. Configure the required environment variables in a `.env` file or exported shell variables.
+2. Create or update the required environment variables. The project loads values from a `.env` file and from the process environment.
 
-3. Start the local database and app with Docker Compose:
+3. Start the database and app with Docker Compose:
 
 ```bash
 docker compose up --build
 ```
 
-4. Or run the Go server directly:
+4. Or run the server directly:
 
 ```bash
 go run ./cmd/server
 ```
 
-When running natively, the application expects the database and JWT configuration to already be available in the environment.
+The repo includes both a production Dockerfile and a development Dockerfile. The development setup uses Air and Delve as configured in `.air.toml`.
 
 ## Environment variables
 
-The code reads the following runtime settings from environment variables. Use placeholders for secret values rather than actual credentials.
+The application reads the following variables directly in `internal/config/config.go`.
 
-| Variable | Required | Purpose |
+| Variable | Required | Notes |
 | --- | --- | --- |
-| `APP_PORT` | No | HTTP port for the Go server. Defaults to `8080` and is normalized with a leading `:` when needed. |
-| `WORKSPACE_DATABASE_URL` | Yes | PostgreSQL connection string used by the app and migration runner. |
-| `JWT_PUBLIC_KEY` | Yes | Public key used to validate incoming bearer JWT tokens. Newlines are normalized from escaped `\n` sequences. |
-| `IDEMPOTENCY_SCOPE_KEY` | Yes | 64-character hexadecimal key used for idempotency scope hashing. |
-| `IDEMPOTENCY_ENCRYPTION_KEY` | Yes | 64-character hexadecimal key used to encrypt idempotency responses. |
-| `SWAGGER_HOST` | No | Overrides the Swagger host used in generated docs if set. |
-| `WORKSPACE_POSTGRES_USER` | Yes for Compose stack | PostgreSQL database user used by Docker Compose. |
-| `WORKSPACE_POSTGRES_PASSWORD` | Yes for Compose stack | PostgreSQL password used by Docker Compose. |
-| `WORKSPACE_POSTGRES_DB` | Yes for Compose stack | PostgreSQL database name used by Docker Compose. |
-| `WORKSPACE_POSTGRES_HOST_PORT` | Yes for Compose stack | Host port mapped to PostgreSQL container port `5432`. |
-| `WORKSPACE_HOST_PORT` | Yes for Compose stack | Host port mapped to the application container port. |
+| `APP_PORT` | No | HTTP port. Defaults to `8080`; the loader normalizes it to `:port` format when needed. |
+| `WORKSPACE_DATABASE_URL` | Yes | PostgreSQL connection string used by the app and migration process. |
+| `JWT_PUBLIC_KEY` | Yes | Public key used to validate incoming bearer JWT tokens. Literal `\n` sequences are converted to real newlines. |
+| `IDEMPOTENCY_SCOPE_KEY` | Yes | 64-character hexadecimal key used for hashing idempotency scopes. |
+| `IDEMPOTENCY_ENCRYPTION_KEY` | Yes | 64-character hexadecimal key used for encrypting idempotency responses. |
+| `SWAGGER_HOST` | No | Optional override used when generating Swagger host metadata. |
 
-The repository contains a local `.env` file with example values for development, but that file should not be treated as a source of truth for production secrets.
+The Compose stack also relies on these variables:
 
-## Running the application
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `WORKSPACE_POSTGRES_USER` | Yes | PostgreSQL user for the local Compose database. |
+| `WORKSPACE_POSTGRES_PASSWORD` | Yes | PostgreSQL password for the local Compose database. |
+| `WORKSPACE_POSTGRES_DB` | Yes | PostgreSQL database name. |
+| `WORKSPACE_POSTGRES_HOST_PORT` | Yes | Host port mapped to the PostgreSQL container. |
+| `WORKSPACE_HOST_PORT` | Yes | Host port mapped to the application container. |
+
+Use placeholders instead of real secrets when documenting or sharing configuration.
+
+## Running the service
 
 ### Docker Compose
 
@@ -221,53 +224,75 @@ This starts:
 
 - PostgreSQL on the configured host port,
 - the Go application on the configured `WORKSPACE_HOST_PORT`,
-- the app with the project mounted into `/app` for development.
+- the project mounted in `/app` for development.
 
 ### Local Go process
 
 ```bash
 export WORKSPACE_DATABASE_URL="postgres://user:password@localhost:5432/adorbit_workspace?sslmode=disable"
 export JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
-export IDEMPOTENCY_SCOPE_KEY="<64 hex chars>"
-export IDEMPOTENCY_ENCRYPTION_KEY="<64 hex chars>"
+export IDEMPOTENCY_SCOPE_KEY="<64 hexadecimal characters>"
+export IDEMPOTENCY_ENCRYPTION_KEY="<64 hexadecimal characters>"
 
 go run ./cmd/server
 ```
 
-The application listens on the configured `APP_PORT` with a normalized `:port` format.
+The server listens on `APP_PORT` using a normalized `:port` address, for example `:8080` or `:8082`.
 
 ## API reference
 
-The service currently exposes a small API surface.
+The service exposes a very small API surface.
 
-| Method | Endpoint | Auth | Description |
+| Method | Endpoint | Authentication | Description |
 | --- | --- | --- | --- |
-| `GET` | `/health` | No | Returns a JSON status object `{"status":"ok"}`. |
-| `GET` | `/swagger/` | No | Serves the generated Swagger UI for the API. |
-| `POST` | `/api/v1/workspace` | Yes (`Bearer <JWT>`) | Creates a workspace for the authenticated user. |
+| `GET` | `/health` | No | Returns a JSON payload: `{"status":"ok"}` |
+| `GET` | `/swagger/` | No | Serves the generated Swagger UI |
+| `POST` | `/api/v1/workspace` | Bearer JWT + `Idempotency-Key` header | Creates a workspace for the authenticated user |
 
-The workspace creation payload matches `CreateWorkspaceDTO` and supports the following fields:
+The workspace creation payload matches `CreateWorkspaceDTO` in `internal/workspace/model.go`.
 
-- `name` (required)
-- `type` (`advertiser` or `publisher`)
-- `country` (required)
-- `timezone` (required)
-- `currency` (required)
-- `industry` (optional)
-- `website` (optional)
-- `description` (optional)
+### POST /api/v1/workspace
 
-The route is protected by both JWT middleware and idempotency middleware. The idempotency scope is keyed per authenticated user, which prevents duplicate create requests from being processed repeatedly.
+Request body example:
+
+```json
+{
+  "name": "Northwind Media",
+  "type": "advertiser",
+  "country": "US",
+  "timezone": "America/New_York",
+  "currency": "USD",
+  "industry": "Retail",
+  "website": "https://example.com",
+  "description": "Advertising workspace for the Northwind account."
+}
+```
+
+Required fields:
+
+- `name` — required string, max 150 chars
+- `type` — required enum: `advertiser` or `publisher`
+- `country` — required 2-character ISO country code
+- `timezone` — required string, max 100 chars
+- `currency` — required 3-character currency code
+
+Optional fields:
+
+- `industry` — optional string, max 100 chars
+- `website` — optional URL
+- `description` — optional string
+
+The route is protected by JWT middleware and idempotency middleware. The idempotency scope is derived from the authenticated user, so duplicate create requests are isolated per user.
 
 ## Database schema
 
-The database migration file `internal/database/migrations/000001_create_workspace.up.sql` creates a single `workspaces` table with the following structure:
+The initial migration is defined in `internal/database/migrations/000001_create_workspace.up.sql` and creates a single table named `workspaces`.
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `id` | `UUID` | Primary key, generated with `gen_random_uuid()` |
+| `id` | `UUID` | Primary key generated via `gen_random_uuid()` |
 | `name` | `VARCHAR(150)` | Not null |
-| `slug` | `VARCHAR(180)` | Unique, generated from workspace name |
+| `slug` | `VARCHAR(180)` | Unique, generated from the workspace name |
 | `type` | `VARCHAR(20)` | Restricted to `advertiser` or `publisher` |
 | `country` | `CHAR(2)` | Not null |
 | `timezone` | `VARCHAR(100)` | Not null |
@@ -276,11 +301,11 @@ The database migration file `internal/database/migrations/000001_create_workspac
 | `website` | `TEXT` | Optional |
 | `description` | `TEXT` | Optional |
 | `status` | `VARCHAR(20)` | Defaults to `active`; allowed values are `active` and `deleted` |
-| `created_by` | `UUID` | User who created the record |
+| `created_by` | `UUID` | Authenticated user ID |
 | `created_at` | `TIMESTAMPTZ` | Defaults to `NOW()` |
 | `updated_at` | `TIMESTAMPTZ` | Defaults to `NOW()` |
 
-The migration also creates the following indexes:
+Indexes created by the migration:
 
 - `idx_workspaces_created_by`
 - `idx_workspaces_type`
@@ -288,69 +313,25 @@ The migration also creates the following indexes:
 
 ## Testing
 
-The repository contains a small but meaningful set of Go tests. The following command runs the current suite:
+The repository includes Go tests for config loading, app lifecycle, health checks, and Swagger host setup. The project test suite is run with:
 
 ```bash
 go test ./...
 ```
 
-The current tests verify:
-
-- config loading and validation,
-- basic app creation failure behavior,
-- graceful nil handling in app shutdown,
-- the health endpoint response,
-- default and custom Swagger host configuration.
-
-## Development workflow
-
-The repository includes a local development setup via Air and Docker.
-
-### Air
-
-`.air.toml` configures a Go build process that:
-
-- compiles the server binary into `./tmp/main`,
-- runs `swag init` before rebuilds to refresh Swagger docs,
-- launches the binary with Delve for remote debugging,
-- watches project source for automatic rebuilds.
-
-### Typical workflow
-
-```bash
-# run all tests
-go test ./...
-
-# regenerate Swagger docs
-swag init -g cmd/server/main.go -o docs --parseInternal --parseDependency
-
-# start the server with Air
-air -c .air.toml
-```
+Current repository state: this command currently fails in `cmd/server/main_test.go` because the Swagger host assertion expects `localhost:8081` but the implementation builds `localhost8081` without the colon. The test suite is therefore present but not fully green in the current state of the repo.
 
 ## Security considerations
 
-The implementation includes a few explicit security controls, based on the repository code:
+The codebase includes a few explicit security controls that are directly implemented:
 
-- JWT validation is performed using a configured public key (`JWT_PUBLIC_KEY`).
-- Authentication is enforced on the workspace route with the JWT middleware.
-- Idempotency middleware is applied to workspace creation to reduce duplicate processing.
-- Database access uses PostgreSQL and stores records with constrained enum-like values.
+- JWT validation with `JWT_PUBLIC_KEY`.
+- Route-level authentication on the workspace endpoint via the JWT middleware.
+- Idempotency enforcement for workspace creation to reduce duplicate processing.
+- PostgreSQL table constraints such as `type` and `status` checks in the migration.
 
-This service is not documented as providing a full identity platform, RBAC model, or external secret manager. The repository does not include additional security infrastructure beyond the code above.
-
-## Current scope and limitations
-
-This repository is intentionally narrow in scope. As implemented today, it provides:
-
-- one domain: workspace creation,
-- one database table: `workspaces`,
-- one primary route: `POST /api/v1/workspace`,
-- health and Swagger endpoints,
-- JWT and idempotency enforcement.
-
-There are no repository files indicating broader multi-tenant systems, billing flows, user management, or deployment automation beyond the local Docker Compose setup.
+This repository does not show a broader identity, RBAC, rate-limit, or secret-management layer beyond those checks.
 
 ## License
 
-There is no license file in the repository root. The project currently does not declare a license, so no license information is documented here beyond that fact.
+There is no license file in the repository root or the current project tree, so the project does not currently declare a license in the repository state.
