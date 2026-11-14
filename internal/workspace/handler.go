@@ -17,12 +17,14 @@ func NewHandler(service *Service) *Handler {
 }
 
 // Create godoc
-// @Summary      Create workspace
-// @Description  Creates a new advertiser or publisher workspace for the authenticated user.
-// @Tags         Workspaces
-// @Accept       json
-// @Produce      json
+// @Summary Create a new workspace
+// @Description Creates a new advertiser or publisher workspace for the authenticated user.
+// @Description Requires an Idempotency-Key to safely handle retries.
+// @Tags Workspaces
+// @Accept json
+// @Produce json
 // @Security     BearerAuth
+// @Param Idempotency-Key header string true "Unique UUID for request idempotency"
 // @Param        request body CreateWorkspaceDTO true "Workspace details"
 // @Success      201 {object} response.Response "Workspace created successfully"
 // @Failure      400 {object} response.Response "Invalid request payload"
