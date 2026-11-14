@@ -20,7 +20,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new advertiser or publisher workspace for the authenticated user.",
+                "description": "Creates a new advertiser or publisher workspace for the authenticated user.\nRequires an Idempotency-Key to safely handle retries.",
                 "consumes": [
                     "application/json"
                 ],
@@ -30,8 +30,15 @@
                 "tags": [
                     "Workspaces"
                 ],
-                "summary": "Create workspace",
+                "summary": "Create a new workspace",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Unique UUID for request idempotency",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "Workspace details",
                         "name": "request",

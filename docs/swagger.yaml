@@ -59,9 +59,15 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new advertiser or publisher workspace for the authenticated
-        user.
+      description: |-
+        Creates a new advertiser or publisher workspace for the authenticated user.
+        Requires an Idempotency-Key to safely handle retries.
       parameters:
+      - description: Unique UUID for request idempotency
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
       - description: Workspace details
         in: body
         name: request
@@ -105,7 +111,7 @@ paths:
             $ref: '#/definitions/response.Response'
       security:
       - BearerAuth: []
-      summary: Create workspace
+      summary: Create a new workspace
       tags:
       - Workspaces
 schemes:
