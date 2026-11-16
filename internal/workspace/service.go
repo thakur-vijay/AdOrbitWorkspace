@@ -25,3 +25,13 @@ func (s *Service) Create(ctx context.Context, userID string, dto CreateWorkspace
 
 	return workspace, nil
 }
+
+func (s *Service) Fetch(ctx context.Context, userID string) ([]Workspace, error) {
+	workspaces, err := s.repository.Fetch(ctx, userID)
+
+	if err != nil {
+		return nil, apperrors.Classify(err)
+	}
+
+	return workspaces, nil
+}

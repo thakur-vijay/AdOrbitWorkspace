@@ -15,7 +15,48 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/workspace": {
+        "/workspaces": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches all active workspaces created by the authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workspaces"
+                ],
+                "summary": "Fetch authenticated user's workspaces",
+                "responses": {
+                    "200": {
+                        "description": "Workspaces fetched successfully",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {

@@ -34,7 +34,7 @@ func NewHandler(service *Service) *Handler {
 // @Failure      429 {object} response.Response "Rate limit exceeded"
 // @Failure      500 {object} response.Response "Internal server error"
 // @Failure      503 {object} response.Response "Service unavailable"
-// @Router       /workspace [post]
+// @Router       /workspaces [post]
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var dto CreateWorkspaceDTO
 	principal, ok := middleware.GetPrincipal(r.Context())
@@ -59,4 +59,35 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteItem(w, http.StatusCreated, "Workspace created successfully", workspace)
+}
+
+// Fetch godoc
+// @Summary Fetch authenticated user's workspaces
+// @Description Fetches all active workspaces created by the authenticated user.
+// @Tags Workspaces
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response "Workspaces fetched successfully"
+// @Failure 401 {object} response.Response "Authentication failed"
+// @Failure 500 {object} response.Response "Internal server error"
+// @Failure 503 {object} response.Response "Service unavailable"
+// @Router /workspaces [get]
+func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+
+	if !ok {
+		response.Write(w, http.StatusUnauthorized, "authentication failed in handler")
+		return
+	}
+
+	ctx := r.Context()
+
+	workspace, err := h.service.Fetch(ctx, principal.UserID)
+
+	if err != nil {
+		response.WriteError(w, err)
+		return
+	}
+
+	response.WriteItem(w, http.StatusOK, "Workspaces fetched successfully", workspace)
 }

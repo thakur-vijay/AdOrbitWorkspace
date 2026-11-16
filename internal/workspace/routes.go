@@ -21,7 +21,7 @@ func RegisterRoutes(
 	)
 
 	mux.Handle(
-		"POST /workspace",
+		"POST /workspaces",
 		jwtMiddleware.RequireAuth(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				principal, ok := middleware.GetPrincipal(r.Context())
@@ -37,6 +37,13 @@ func RegisterRoutes(
 
 				createHandler.ServeHTTP(w, r.WithContext(ctx))
 			}),
+		),
+	)
+
+	mux.Handle(
+		"GET /workspaces",
+		jwtMiddleware.RequireAuth(
+			http.HandlerFunc(handler.Fetch),
 		),
 	)
 }
