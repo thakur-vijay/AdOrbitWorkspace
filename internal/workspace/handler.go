@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/thakur-vijay/adorbit-go/apperrors"
@@ -48,6 +49,22 @@ func NewHandler(service Service) *Handler {
 	}
 }
 
+func writeRequestError(w http.ResponseWriter, err error) {
+	if err == nil {
+		return
+	}
+
+	switch {
+	case errors.Is(err, response.ErrFailedToReadBody),
+		errors.Is(err, response.ErrRequestBodyEmpty),
+		errors.Is(err, response.ErrInvalidJSON),
+		errors.Is(err, response.ErrInvalidFieldValues):
+		response.WriteError(w, apperrors.NewBadRequest("invalid request payload", err))
+	default:
+		response.WriteError(w, apperrors.Classify(err))
+	}
+}
+
 // Create godoc
 // @Summary Create a new workspace
 // @Description Creates a new advertiser or publisher workspace for the authenticated user.
@@ -79,7 +96,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := response.DecodeJSONAndValidate(r, &dto); err != nil {
-		response.WriteError(w, apperrors.Classify(err))
+		writeRequestError(w, err)
 		return
 	}
 
@@ -140,6 +157,11 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 // @Failure      503 {object} response.Response "Service unavailable"
 // @Router       /workspaces/{id} [get]
 func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
+	if _, ok := middleware.GetPrincipal(r.Context()); !ok {
+		response.Write(w, http.StatusUnauthorized, "authentication failed in handler")
+		return
+	}
+
 	ctx := r.Context()
 
 	workspaceID := r.PathValue("id")
@@ -180,11 +202,16 @@ func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 // @Failure      503 {object} response.Response "Service unavailable"
 // @Router       /workspaces/{id} [patch]
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	if _, ok := middleware.GetPrincipal(r.Context()); !ok {
+		response.Write(w, http.StatusUnauthorized, "authentication failed in handler")
+		return
+	}
+
 	var dto UpdateWorkspaceDTO
 	ctx := r.Context()
 
 	if err := response.DecodeJSONAndValidate(r, &dto); err != nil {
-		response.WriteError(w, apperrors.Classify(err))
+		writeRequestError(w, err)
 		return
 	}
 
@@ -223,6 +250,11 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 // @Failure      503 {object} response.Response "Service unavailable"
 // @Router       /workspaces/{id} [delete]
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	if _, ok := middleware.GetPrincipal(r.Context()); !ok {
+		response.Write(w, http.StatusUnauthorized, "authentication failed in handler")
+		return
+	}
+
 	ctx := r.Context()
 	workspaceID := r.PathValue("id")
 

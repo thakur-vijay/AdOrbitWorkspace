@@ -40,7 +40,7 @@ type CreateWorkspaceDTO struct {
 	Currency    string        `json:"currency" validate:"required,len=3"`
 	Industry    *string       `json:"industry" validate:"omitempty,max=100"`
 	Website     *string       `json:"website" validate:"omitempty,url"`
-	Description *string       `json:"description" validate:"omitempty,url"`
+	Description *string       `json:"description" validate:"omitempty"`
 }
 
 type UpdateWorkspaceDTO struct {
@@ -50,5 +50,5 @@ type UpdateWorkspaceDTO struct {
 	Currency    *string `json:"currency" validate:"omitempty,len=3"`
 	Industry    *string `json:"industry" validate:"omitempty,max=100"`
 	Website     *string `json:"website" validate:"omitempty,url"`
-	Description *string `json:"description" validate:"omitempty,url"`
+	Description *string `json:"description" validate:"omitempty"`
 }

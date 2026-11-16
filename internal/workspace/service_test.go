@@ -19,15 +19,31 @@ type mockRepository struct {
 	createErr       error
 	fetchWorkspaces []Workspace
 	fetchErr        error
+	fetchByIDWork   *Workspace
+	fetchByIDErr    error
+	updateWork      *Workspace
+	updateErr       error
+	deleteErr       error
 
-	createCalls int
-	fetchCalls  int
-	createDTO   CreateWorkspaceDTO
-	createUser  string
-	createSlug  string
-	fetchUser   string
-	createCtx   context.Context
-	fetchCtx    context.Context
+	createCalls    int
+	fetchCalls     int
+	fetchByIDCalls int
+	updateCalls    int
+	deleteCalls    int
+	createDTO      CreateWorkspaceDTO
+	createUser     string
+	createSlug     string
+	fetchUser      string
+	fetchByIDID    string
+	updateID       string
+	updateDTO      UpdateWorkspaceDTO
+	updateSlug     *string
+	deleteID       string
+	createCtx      context.Context
+	fetchCtx       context.Context
+	fetchByIDCtx   context.Context
+	updateCtx      context.Context
+	deleteCtx      context.Context
 }
 
 func (m *mockRepository) Create(ctx context.Context, dto CreateWorkspaceDTO, userID, slug string) (*Workspace, error) {
@@ -48,6 +64,35 @@ func (m *mockRepository) Fetch(ctx context.Context, userID string) ([]Workspace,
 	m.fetchCtx = ctx
 	m.fetchUser = userID
 	return m.fetchWorkspaces, m.fetchErr
+}
+
+func (m *mockRepository) FetchByID(ctx context.Context, workspaceID string) (*Workspace, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.fetchByIDCalls++
+	m.fetchByIDCtx = ctx
+	m.fetchByIDID = workspaceID
+	return m.fetchByIDWork, m.fetchByIDErr
+}
+
+func (m *mockRepository) Update(ctx context.Context, dto UpdateWorkspaceDTO, workspaceID string, slug *string) (*Workspace, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.updateCalls++
+	m.updateCtx = ctx
+	m.updateID = workspaceID
+	m.updateDTO = dto
+	m.updateSlug = slug
+	return m.updateWork, m.updateErr
+}
+
+func (m *mockRepository) Delete(ctx context.Context, workspaceID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.deleteCalls++
+	m.deleteCtx = ctx
+	m.deleteID = workspaceID
+	return m.deleteErr
 }
 
 func TestCreateService_GeneratesSlugAndForwardsInput(t *testing.T) {

@@ -23,14 +23,26 @@ type mockService struct {
 	createErr       error
 	fetchWorkspaces []Workspace
 	fetchErr        error
+	fetchByIDWork   *Workspace
+	fetchByIDErr    error
+	updateWorkspace *Workspace
+	updateErr       error
+	deleteErr       error
 	createHook      func()
 
-	createCalls int
-	fetchCalls  int
-	createUser  string
-	createUsers []string
-	fetchUser   string
-	createDTO   CreateWorkspaceDTO
+	createCalls    int
+	fetchCalls     int
+	fetchByIDCalls int
+	updateCalls    int
+	deleteCalls    int
+	createUser     string
+	createUsers    []string
+	fetchUser      string
+	fetchByIDID    string
+	updateID       string
+	updateDTO      UpdateWorkspaceDTO
+	deleteID       string
+	createDTO      CreateWorkspaceDTO
 }
 
 func (m *mockService) Create(_ context.Context, userID string, dto CreateWorkspaceDTO) (*Workspace, error) {
@@ -54,6 +66,31 @@ func (m *mockService) Fetch(_ context.Context, userID string) ([]Workspace, erro
 	m.fetchCalls++
 	m.fetchUser = userID
 	return m.fetchWorkspaces, m.fetchErr
+}
+
+func (m *mockService) FetchByID(_ context.Context, workspaceID string) (*Workspace, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.fetchByIDCalls++
+	m.fetchByIDID = workspaceID
+	return m.fetchByIDWork, m.fetchByIDErr
+}
+
+func (m *mockService) Update(_ context.Context, dto UpdateWorkspaceDTO, workspaceID string) (*Workspace, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.updateCalls++
+	m.updateID = workspaceID
+	m.updateDTO = dto
+	return m.updateWorkspace, m.updateErr
+}
+
+func (m *mockService) Delete(_ context.Context, workspaceID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.deleteCalls++
+	m.deleteID = workspaceID
+	return m.deleteErr
 }
 
 type handlerResponse struct {

@@ -88,6 +88,10 @@ func (s *service) Update(
 	dto UpdateWorkspaceDTO,
 	workspaceID string,
 ) (*Workspace, error) {
+	if dto.Name == nil && dto.Country == nil && dto.Timezone == nil && dto.Currency == nil && dto.Industry == nil && dto.Website == nil && dto.Description == nil {
+		return nil, apperrors.NewBadRequest("at least one workspace field must be provided", nil)
+	}
+
 	var workspaceSlug *string
 
 	if dto.Name != nil {

@@ -3,6 +3,7 @@ package workspace
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -157,6 +158,10 @@ func (r *repository) Update(
 		fields []string
 	)
 
+	if dto.Name == nil && dto.Country == nil && dto.Timezone == nil && dto.Currency == nil && dto.Industry == nil && dto.Website == nil && dto.Description == nil && slug == nil {
+		return nil, errors.New("no workspace fields provided for update")
+	}
+
 	query.WriteString("UPDATE workspaces SET ")
 
 	if dto.Name != nil {
@@ -251,6 +256,18 @@ func (r *repository) Delete(
         WHERE id = $1
     `
 
-	_, err := r.db.ExecContext(ctx, query, workspaceID)
-	return err
+	result, err := r.db.ExecContext(ctx, query, workspaceID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
