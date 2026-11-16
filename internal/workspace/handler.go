@@ -2,7 +2,6 @@ package workspace
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/thakur-vijay/adorbit-go/apperrors"
@@ -21,6 +20,22 @@ type Service interface {
 		ctx context.Context,
 		userID string,
 	) ([]Workspace, error)
+
+	FetchByID(
+		ctx context.Context,
+		workspaceID string,
+	) (*Workspace, error)
+
+	Update(
+		ctx context.Context,
+		dto UpdateWorkspaceDTO,
+		workspaceID string,
+	) (*Workspace, error)
+
+	Delete(
+		ctx context.Context,
+		workspaceID string,
+	) error
 }
 
 type Handler struct {
@@ -64,13 +79,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := response.DecodeJSONAndValidate(r, &dto); err != nil {
-		if errors.Is(err, response.ErrFailedToReadBody) ||
-			errors.Is(err, response.ErrRequestBodyEmpty) ||
-			errors.Is(err, response.ErrInvalidJSON) ||
-			errors.Is(err, response.ErrInvalidFieldValues) {
-			response.WriteError(w, apperrors.NewBadRequest("invalid request payload", err))
-			return
-		}
 		response.WriteError(w, apperrors.Classify(err))
 		return
 	}
@@ -114,4 +122,119 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteItem(w, http.StatusOK, "Workspaces fetched successfully", workspace)
+}
+
+// Update godoc
+// @Summary      Fetch workspace
+// @Description  Fetch the advertiser or publisher workspace for the authenticated user.
+// @Tags         Workspaces
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Workspace ID"
+// @Success      200 {object} response.Response "Workspace fetched successfully"
+// @Failure      401 {object} response.Response "Authentication failed"
+// @Failure      404 {object} response.Response "Workspace not found"
+// @Failure      429 {object} response.Response "Rate limit exceeded"
+// @Failure      500 {object} response.Response "Internal server error"
+// @Failure      503 {object} response.Response "Service unavailable"
+// @Router       /workspaces/{id} [get]
+func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	workspaceID := r.PathValue("id")
+
+	workspace, err := h.service.FetchByID(ctx, workspaceID)
+	if err != nil {
+		response.WriteError(w, err)
+		return
+	}
+
+	response.WriteItem(
+		w,
+		http.StatusOK,
+		"Workspace fetched successfully",
+		workspace,
+	)
+}
+
+// Update godoc
+// @Summary      Update workspace
+// @Description  Partially update the advertiser or publisher workspace for the authenticated user.
+// @Description  Requires an Idempotency-Key to safely handle retries.
+// @Tags         Workspaces
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Workspace ID"
+// @Param        Idempotency-Key header string true "Unique UUID for request idempotency"
+// @Param        request body UpdateWorkspaceDTO true "Workspace fields to update"
+// @Success      200 {object} response.Response "Workspace updated successfully"
+// @Failure      400 {object} response.Response "Invalid request payload"
+// @Failure      401 {object} response.Response "Authentication failed"
+// @Failure      404 {object} response.Response "Workspace not found"
+// @Failure      409 {object} response.Response "Workspace conflict"
+// @Failure      422 {object} response.Response "Validation failed"
+// @Failure      429 {object} response.Response "Rate limit exceeded"
+// @Failure      500 {object} response.Response "Internal server error"
+// @Failure      503 {object} response.Response "Service unavailable"
+// @Router       /workspaces/{id} [patch]
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	var dto UpdateWorkspaceDTO
+	ctx := r.Context()
+
+	if err := response.DecodeJSONAndValidate(r, &dto); err != nil {
+		response.WriteError(w, apperrors.Classify(err))
+		return
+	}
+
+	workspaceID := r.PathValue("id")
+
+	workspace, err := h.service.Update(ctx, dto, workspaceID)
+	if err != nil {
+		response.WriteError(w, err)
+		return
+	}
+
+	response.WriteItem(
+		w,
+		http.StatusOK,
+		"Workspace updated successfully",
+		workspace,
+	)
+}
+
+// Delete godoc
+// @Summary      Delete workspace
+// @Description  Soft delete the advertiser or publisher workspace for the authenticated user.
+// @Description  Requires an Idempotency-Key to safely handle retries.
+// @Tags         Workspaces
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Workspace ID"
+// @Param        Idempotency-Key header string true "Unique UUID for request idempotency"
+// @Success      200 {object} response.Response "Workspace deleted successfully"
+// @Failure      401 {object} response.Response "Authentication failed"
+// @Failure      404 {object} response.Response "Workspace not found"
+// @Failure      409 {object} response.Response "Workspace conflict"
+// @Failure      429 {object} response.Response "Rate limit exceeded"
+// @Failure      500 {object} response.Response "Internal server error"
+// @Failure      503 {object} response.Response "Service unavailable"
+// @Router       /workspaces/{id} [delete]
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	workspaceID := r.PathValue("id")
+
+	err := h.service.Delete(ctx, workspaceID)
+	if err != nil {
+		response.WriteError(w, err)
+		return
+	}
+
+	response.Write(
+		w,
+		http.StatusOK,
+		"Workspace deleted successfully",
+	)
 }

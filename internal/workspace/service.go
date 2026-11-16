@@ -19,6 +19,23 @@ type Repository interface {
 		ctx context.Context,
 		userID string,
 	) ([]Workspace, error)
+
+	FetchByID(
+		ctx context.Context,
+		workspaceID string,
+	) (*Workspace, error)
+
+	Update(
+		ctx context.Context,
+		dto UpdateWorkspaceDTO,
+		workspaceID string,
+		slug *string,
+	) (*Workspace, error)
+
+	Delete(
+		ctx context.Context,
+		workspaceID string,
+	) error
 }
 
 type service struct {
@@ -52,4 +69,46 @@ func (s *service) Fetch(ctx context.Context, userID string) ([]Workspace, error)
 	}
 
 	return workspaces, nil
+}
+
+func (s *service) FetchByID(
+	ctx context.Context,
+	workspaceID string,
+) (*Workspace, error) {
+	workspace, err := s.repository.FetchByID(ctx, workspaceID)
+	if err != nil {
+		return nil, apperrors.Classify(err)
+	}
+
+	return workspace, nil
+}
+
+func (s *service) Update(
+	ctx context.Context,
+	dto UpdateWorkspaceDTO,
+	workspaceID string,
+) (*Workspace, error) {
+	var workspaceSlug *string
+
+	if dto.Name != nil {
+		generatedSlug := slug.Make(*dto.Name)
+		workspaceSlug = &generatedSlug
+	}
+
+	workspace, err := s.repository.Update(ctx, dto, workspaceID, workspaceSlug)
+	if err != nil {
+		return nil, apperrors.Classify(err)
+	}
+
+	return workspace, nil
+}
+
+func (s *service) Delete(
+	ctx context.Context,
+	workspaceID string,
+) error {
+
+	err := s.repository.Delete(ctx, workspaceID)
+
+	return apperrors.Classify(err)
 }

@@ -46,4 +46,63 @@ func RegisterRoutes(
 			http.HandlerFunc(handler.Fetch),
 		),
 	)
+
+	mux.Handle(
+		"GET /workspaces/{id}",
+		jwtMiddleware.RequireAuth(
+			http.HandlerFunc(handler.FetchByID),
+		),
+	)
+
+	updateHandler := idempotencyMiddleware.RequireIdempotencyKey(
+		idempotencyMiddleware.RequireIdempotency("workspace.update")(
+			http.HandlerFunc(handler.Update),
+		),
+	)
+
+	mux.Handle(
+		"PATCH /workspaces/{id}",
+		jwtMiddleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				principal, ok := middleware.GetPrincipal(r.Context())
+				if !ok {
+					response.Write(w, http.StatusUnauthorized, "authentication failed in routes")
+					return
+				}
+
+				ctx := idempotency.WithIdempotencyScope(
+					r.Context(),
+					"workspace:update:"+principal.UserID,
+				)
+
+				updateHandler.ServeHTTP(w, r.WithContext(ctx))
+			}),
+		),
+	)
+
+	deleteHandler := idempotencyMiddleware.RequireIdempotencyKey(
+		idempotencyMiddleware.RequireIdempotency("workspace.delete")(
+			http.HandlerFunc(handler.Delete),
+		),
+	)
+
+	mux.Handle(
+		"DELETE /workspaces/{id}",
+		jwtMiddleware.RequireAuth(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				principal, ok := middleware.GetPrincipal(r.Context())
+				if !ok {
+					response.Write(w, http.StatusUnauthorized, "authentication failed in routes")
+					return
+				}
+
+				ctx := idempotency.WithIdempotencyScope(
+					r.Context(),
+					"workspace:delete:"+principal.UserID,
+				)
+
+				deleteHandler.ServeHTTP(w, r.WithContext(ctx))
+			}),
+		),
+	)
 }

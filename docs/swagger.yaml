@@ -32,6 +32,26 @@ definitions:
     - timezone
     - type
     type: object
+  internal_workspace.UpdateWorkspaceDTO:
+    properties:
+      country:
+        type: string
+      currency:
+        type: string
+      description:
+        type: string
+      industry:
+        maxLength: 100
+        type: string
+      name:
+        maxLength: 150
+        type: string
+      timezone:
+        maxLength: 100
+        type: string
+      website:
+        type: string
+    type: object
   internal_workspace.WorkspaceType:
     enum:
     - advertiser
@@ -138,6 +158,117 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a new workspace
+      tags:
+      - Workspaces
+  /workspaces/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Fetch the advertiser or publisher workspace for the authenticated
+        user.
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace fetched successfully
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Authentication failed
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Workspace not found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "429":
+          description: Rate limit exceeded
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.Response'
+        "503":
+          description: Service unavailable
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Fetch workspace
+      tags:
+      - Workspaces
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        Partially update the advertiser or publisher workspace for the authenticated user.
+        Requires an Idempotency-Key to safely handle retries.
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Unique UUID for request idempotency
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Workspace fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_workspace.UpdateWorkspaceDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace updated successfully
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Authentication failed
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Workspace not found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "409":
+          description: Workspace conflict
+          schema:
+            $ref: '#/definitions/response.Response'
+        "422":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/response.Response'
+        "429":
+          description: Rate limit exceeded
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.Response'
+        "503":
+          description: Service unavailable
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update workspace
       tags:
       - Workspaces
 schemes:
