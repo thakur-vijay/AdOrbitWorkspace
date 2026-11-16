@@ -1,6 +1,8 @@
 package workspace
 
 import (
+	"context"
+	"errors"
 	"net/http"
 
 	"github.com/thakur-vijay/adorbit-go/apperrors"
@@ -8,12 +10,27 @@ import (
 	"github.com/thakur-vijay/adorbit-go/response"
 )
 
-type Handler struct {
-	service *Service
+type Service interface {
+	Create(
+		ctx context.Context,
+		userID string,
+		dto CreateWorkspaceDTO,
+	) (*Workspace, error)
+
+	Fetch(
+		ctx context.Context,
+		userID string,
+	) ([]Workspace, error)
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+type Handler struct {
+	service Service
+}
+
+func NewHandler(service Service) *Handler {
+	return &Handler{
+		service: service,
+	}
 }
 
 // Create godoc
@@ -47,6 +64,13 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := response.DecodeJSONAndValidate(r, &dto); err != nil {
+		if errors.Is(err, response.ErrFailedToReadBody) ||
+			errors.Is(err, response.ErrRequestBodyEmpty) ||
+			errors.Is(err, response.ErrInvalidJSON) ||
+			errors.Is(err, response.ErrInvalidFieldValues) {
+			response.WriteError(w, apperrors.NewBadRequest("invalid request payload", err))
+			return
+		}
 		response.WriteError(w, apperrors.Classify(err))
 		return
 	}

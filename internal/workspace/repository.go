@@ -6,15 +6,17 @@ import (
 	"fmt"
 )
 
-type Repository struct {
+type repository struct {
 	db *sql.DB
 }
 
-func NewRepository(db *sql.DB) *Repository {
-	return &Repository{db: db}
+func NewRepository(db *sql.DB) Repository {
+	return &repository{db: db}
 }
 
-func (r *Repository) Create(ctx context.Context, dto CreateWorkspaceDTO, userID, slug string) (*Workspace, error) {
+var _ Repository = (*repository)(nil)
+
+func (r *repository) Create(ctx context.Context, dto CreateWorkspaceDTO, userID, slug string) (*Workspace, error) {
 	var workspace Workspace
 	err := r.db.QueryRowContext(ctx, `INSERT INTO workspaces (name, slug, type, country, timezone, currency, industry, website, description, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, name, slug, type, country, timezone, currency, industry, website, description, status, created_by, created_at, updated_at`, dto.Name, slug, dto.Type, dto.Country, dto.Timezone, dto.Currency, dto.Industry, dto.Website, dto.Description, userID).Scan(
 		&workspace.ID,
@@ -36,7 +38,7 @@ func (r *Repository) Create(ctx context.Context, dto CreateWorkspaceDTO, userID,
 	return &workspace, err
 }
 
-func (r *Repository) Fetch(ctx context.Context, userID string) ([]Workspace, error) {
+func (r *repository) Fetch(ctx context.Context, userID string) ([]Workspace, error) {
 	query := `
         SELECT
             id,

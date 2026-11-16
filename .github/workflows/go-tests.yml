@@ -1,0 +1,65 @@
+name: Go tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Go and PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: adorbit_workspace_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d adorbit_workspace_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      WORKSPACE_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/adorbit_workspace_test?sslmode=disable
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run all tests
+        run: go test -count=1 ./...
+
+      - name: Run race detection
+        run: go test -race -count=1 ./...
+
+      - name: Repeat Workspace tests
+        run: go test -count=10 ./internal/workspace/...
+
+      - name: Measure package coverage
+        run: go test -cover -count=1 ./...
+
+      - name: Generate coverage reports
+        run: |
+          go test -coverprofile=coverage.out -count=1 ./...
+          go tool cover -func=coverage.out
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: |
+            coverage.out
+            coverage.html

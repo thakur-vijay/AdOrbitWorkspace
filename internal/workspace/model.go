@@ -23,9 +23,9 @@ type Workspace struct {
 	Country     string          `json:"country"`
 	Timezone    string          `json:"timezone"`
 	Currency    string          `json:"currency"`
-	Industry    string          `json:"industry"`
-	Website     string          `json:"website"`
-	Description string          `json:"description"`
+	Industry    *string         `json:"industry"`
+	Website     *string         `json:"website"`
+	Description *string         `json:"description"`
 	Status      WorkspaceStatus `json:"status"`
 	CreatedBy   string          `json:"created_by"`
 	CreatedAt   time.Time       `json:"created_at"`

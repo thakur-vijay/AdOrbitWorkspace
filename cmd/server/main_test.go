@@ -17,13 +17,13 @@ func TestSetupSwaggerUsesDefaultHTTPHostAndConfiguredHTTPSHost(t *testing.T) {
 		swaggerDocs.SwaggerInfo.Schemes = oldSchemes
 	})
 
-	setupSwagger("", "8081")
+	setupSwagger("", ":8081")
 
 	if swaggerDocs.SwaggerInfo.Host != "localhost:8081" || swaggerDocs.SwaggerInfo.BasePath != "/api/v1" || !reflect.DeepEqual(swaggerDocs.SwaggerInfo.Schemes, []string{"http"}) {
 		t.Fatalf("Default swagger endpoint = host %q base %q schemes %v", swaggerDocs.SwaggerInfo.Host, swaggerDocs.SwaggerInfo.BasePath, swaggerDocs.SwaggerInfo.Schemes)
 	}
 
-	setupSwagger("api.example.test", "8081")
+	setupSwagger("api.example.test", ":8081")
 
 	if swaggerDocs.SwaggerInfo.Host != "api.example.test" || !reflect.DeepEqual(swaggerDocs.SwaggerInfo.Schemes, []string{"https"}) {
 		t.Fatalf("configured Swagger endpoint = host %q schemes %#v", swaggerDocs.SwaggerInfo.Host, swaggerDocs.SwaggerInfo.Schemes)
