@@ -60,6 +60,27 @@ definitions:
     x-enum-varnames:
     - Advertiser
     - Publisher
+  internal_workspaceMember.SendInviteDTO:
+    properties:
+      email:
+        type: string
+      inviter_name:
+        type: string
+      role:
+        enum:
+        - member
+        type: string
+      workspace_id:
+        type: string
+      workspace_name:
+        type: string
+    required:
+    - email
+    - inviter_name
+    - role
+    - workspace_id
+    - workspace_name
+    type: object
   response.Response:
     properties:
       data: {}
@@ -161,6 +182,59 @@ paths:
       tags:
       - Workspaces
   /workspaces/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Soft delete the advertiser or publisher workspace for the authenticated user.
+        Requires an Idempotency-Key to safely handle retries.
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Unique UUID for request idempotency
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace deleted successfully
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Authentication failed
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Workspace not found
+          schema:
+            $ref: '#/definitions/response.Response'
+        "409":
+          description: Workspace conflict
+          schema:
+            $ref: '#/definitions/response.Response'
+        "429":
+          description: Rate limit exceeded
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.Response'
+        "503":
+          description: Service unavailable
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete workspace
+      tags:
+      - Workspaces
     get:
       consumes:
       - application/json
@@ -269,6 +343,61 @@ paths:
       security:
       - BearerAuth: []
       summary: Update workspace
+      tags:
+      - Workspaces
+  /workspaces/invitations:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Sends an invitation link on email.
+        Requires an Idempotency-Key to safely handle retries.
+      parameters:
+      - description: Unique UUID for request idempotency
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Workspace details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_workspaceMember.SendInviteDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Invitation sent successfully
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Authentication failed
+          schema:
+            $ref: '#/definitions/response.Response'
+        "422":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/response.Response'
+        "429":
+          description: Rate limit exceeded
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.Response'
+        "503":
+          description: Service unavailable
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Send workspace invite to email
       tags:
       - Workspaces
 schemes:

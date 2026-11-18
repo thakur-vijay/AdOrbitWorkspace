@@ -32,6 +32,7 @@ type WorkspaceInvitation struct {
 
 type SendInviteDTO struct {
 	Email         string `json:"email" validate:"required,email"`
+	Role          string `json:"role" validate:"required,oneof=member"`
 	WorkspaceID   string `json:"workspace_id" validate:"required,valid_uuid4"`
 	WorkspaceName string `json:"workspace_name" validate:"required"`
 	InviterName   string `json:"inviter_name" validate:"required"`

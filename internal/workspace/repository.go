@@ -18,9 +18,108 @@ func NewRepository(db *sql.DB) Repository {
 
 var _ Repository = (*repository)(nil)
 
-func (r *repository) Create(ctx context.Context, dto CreateWorkspaceDTO, userID, slug string) (*Workspace, error) {
+func (r *repository) Create(
+	ctx context.Context,
+	dto CreateWorkspaceDTO,
+	userID string,
+	slug string,
+) (*Workspace, error) {
+
+	// 1. Start transaction
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Rollback automatically if transaction is not committed
+	defer tx.Rollback()
+
+	// 3. Create workspace
+	workspace, err := createWorkspaceTx(
+		ctx,
+		tx,
+		dto,
+		userID,
+		slug,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Add creator as workspace owner
+	err = addWorkspaceOwnerTx(
+		ctx,
+		tx,
+		workspace.ID,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. Commit transaction
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return workspace, nil
+}
+
+func createWorkspaceTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	dto CreateWorkspaceDTO,
+	userID string,
+	slug string,
+) (*Workspace, error) {
+
 	var workspace Workspace
-	err := r.db.QueryRowContext(ctx, `INSERT INTO workspaces (name, slug, type, country, timezone, currency, industry, website, description, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, name, slug, type, country, timezone, currency, industry, website, description, status, created_by, created_at, updated_at`, dto.Name, slug, dto.Type, dto.Country, dto.Timezone, dto.Currency, dto.Industry, dto.Website, dto.Description, userID).Scan(
+
+	query := `
+        INSERT INTO workspaces (
+            name,
+            slug,
+            type,
+            country,
+            timezone,
+            currency,
+            industry,
+            website,
+            description,
+            created_by
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING
+            id,
+            name,
+            slug,
+            type,
+            country,
+            timezone,
+            currency,
+            industry,
+            website,
+            description,
+            status,
+            created_by,
+            created_at,
+            updated_at
+    `
+
+	err := tx.QueryRowContext(
+		ctx,
+		query,
+		dto.Name,
+		slug,
+		dto.Type,
+		dto.Country,
+		dto.Timezone,
+		dto.Currency,
+		dto.Industry,
+		dto.Website,
+		dto.Description,
+		userID,
+	).Scan(
 		&workspace.ID,
 		&workspace.Name,
 		&workspace.Slug,
@@ -37,7 +136,38 @@ func (r *repository) Create(ctx context.Context, dto CreateWorkspaceDTO, userID,
 		&workspace.UpdatedAt,
 	)
 
-	return &workspace, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &workspace, nil
+}
+
+func addWorkspaceOwnerTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	workspaceID string,
+	userID string,
+) error {
+
+	query := `
+        INSERT INTO workspace_members (
+            workspace_id,
+            user_id,
+            role
+        )
+        VALUES ($1, $2, $3)
+    `
+
+	_, err := tx.ExecContext(
+		ctx,
+		query,
+		workspaceID,
+		userID,
+		"owner",
+	)
+
+	return err
 }
 
 func (r *repository) Fetch(ctx context.Context, userID string) ([]Workspace, error) {

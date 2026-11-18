@@ -62,6 +62,7 @@ func (s *service) SendInvite(ctx context.Context, dto SendInviteDTO, userID stri
 	workspaceInvitationDTO := WorkspaceInvitation{
 		WorkspaceID: dto.WorkspaceID,
 		Email:       dto.Email,
+		Role:        dto.Role,
 		TokenHash:   tokenHash,
 		InvitedBy:   userID,
 		ExpiresAt:   expiresAt,
