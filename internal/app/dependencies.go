@@ -7,7 +7,9 @@ import (
 	"github.com/adorbit/workspace/internal/api"
 	"github.com/adorbit/workspace/internal/config"
 	"github.com/adorbit/workspace/internal/workspace"
+	workspacemember "github.com/adorbit/workspace/internal/workspaceMember"
 	"github.com/thakur-vijay/adorbit-go/idempotency"
+	"github.com/thakur-vijay/adorbit-go/mailservice"
 	"github.com/thakur-vijay/adorbit-go/middleware"
 )
 
@@ -33,6 +35,21 @@ func BuildRouter(db *sql.DB, cfg *config.Config) (http.Handler, error) {
 	workspaceRepository := workspace.NewRepository(db)
 	workspaceService := workspace.NewService(workspaceRepository)
 	workspaceHandler := workspace.NewHandler(workspaceService)
-	router := api.NewRouter(api.Dependencies{WorkspaceHandler: workspaceHandler, JWTMiddleware: jwtMiddleware, IdempotencyMiddleware: idempotencyMiddleware})
+
+	mailConfig, err := mailservice.LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+	mailService, err := mailservice.New(mailConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	workspaceInviteMailService := workspacemember.NewInvitationMailService(mailService)
+	workspaceMemberRepository := workspacemember.NewRepository(db)
+	workspaceMemberService := workspacemember.NewService(workspaceMemberRepository, workspaceInviteMailService, cfg.APP_DOMAIN)
+	workspaceMemberHandler := workspacemember.NewHandler(workspaceMemberService)
+
+	router := api.NewRouter(api.Dependencies{WorkspaceHandler: workspaceHandler, WorkspaceMemberHandler: workspaceMemberHandler, JWTMiddleware: jwtMiddleware, IdempotencyMiddleware: idempotencyMiddleware})
 	return router, nil
 }

@@ -16,6 +16,7 @@ type Config struct {
 	IdempotencyScopeKey      []byte
 	IdempotencyEncryptionKey []byte
 	SWAGGER_HOST             string
+	APP_DOMAIN               string
 }
 
 func Load() (*Config, error) {
@@ -38,6 +39,7 @@ func Load() (*Config, error) {
 		IdempotencyScopeKey:      scopeKey,
 		IdempotencyEncryptionKey: encryptionKey,
 		SWAGGER_HOST:             getEnv("SWAGGER_HOST", ""),
+		APP_DOMAIN:               getEnv("APP_DOMAIN", ""),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -46,6 +48,10 @@ func Load() (*Config, error) {
 
 	if cfg.JWTPublicKey == "" {
 		return nil, errors.New("JWT_PUBLIC_KEY is not set")
+	}
+
+	if cfg.APP_DOMAIN == "" {
+		return nil, errors.New("APP_DOMAIN is not set")
 	}
 
 	return cfg, nil

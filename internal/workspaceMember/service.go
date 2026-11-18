@@ -2,6 +2,13 @@ package workspacemember
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"io"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/thakur-vijay/adorbit-go/apperrors"
@@ -27,35 +34,76 @@ type Repository interface {
 }
 
 type service struct {
-	repository Repository
+	repository  Repository
+	mailService *InvitationMailService
+	appDomain   string
 }
 
 var _ Service = (*service)(nil)
 
-func NewService(repository Repository) Service {
+func NewService(repository Repository, mailService *InvitationMailService, appDomain string) Service {
 	return &service{
-		repository: repository,
+		repository:  repository,
+		mailService: mailService,
+		appDomain:   appDomain,
 	}
 }
 
 func (s *service) SendInvite(ctx context.Context, dto SendInviteDTO, userID string) error {
 	//generate token and its hash, create link from token and save hash in DTO
-	tokenHash := ""
+	token, err := generateInvitationToken()
+	if err != nil {
+		return apperrors.Classify(err)
+	}
+
+	tokenHash := hashInvitationToken(token)
+
+	expiresAt := time.Now().AddDate(0, 0, 7)
 	workspaceInvitationDTO := WorkspaceInvitation{
 		WorkspaceID: dto.WorkspaceID,
 		Email:       dto.Email,
 		TokenHash:   tokenHash,
 		InvitedBy:   userID,
-		ExpiresAt:   time.Now().AddDate(0, 0, 7),
+		ExpiresAt:   expiresAt,
 	}
 
-	err := s.repository.CreateInvitation(ctx, workspaceInvitationDTO)
-
-	// send email
+	err = s.repository.CreateInvitation(ctx, workspaceInvitationDTO)
 
 	if err != nil {
 		return apperrors.Classify(err)
 	}
 
-	return nil
+	invitationLink := fmt.Sprintf(
+		"%s/invitations/accept?token=%s",
+		strings.TrimRight(s.appDomain, "/"),
+		url.QueryEscape(token),
+	)
+
+	mailDTO := InvitationEmailDTO{
+		Email:          dto.Email,
+		WorkspaceName:  dto.WorkspaceName,
+		InviterName:    dto.InviterName,
+		Role:           Member,
+		InvitationLink: invitationLink,
+		ExpiresAt:      expiresAt,
+	}
+	err = s.mailService.Send(ctx, mailDTO)
+
+	return err
+}
+
+func generateInvitationToken() (string, error) {
+	token := make([]byte, 32)
+
+	if _, err := io.ReadFull(rand.Reader, token); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(token), nil
+}
+
+func hashInvitationToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+
+	return hex.EncodeToString(hash[:])
 }

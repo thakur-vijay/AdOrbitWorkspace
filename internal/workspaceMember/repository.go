@@ -32,10 +32,48 @@ func (r *repository) FetchUserWorkspaces(ctx context.Context, userID string) ([]
 }
 
 // Workspace Invitations
-func (r *repository) CreateInvitation(ctx context.Context, invitation WorkspaceInvitation) error {
+func (r *repository) CreateInvitation(
+	ctx context.Context,
+	invitation WorkspaceInvitation,
+) error {
+	query := `
+        INSERT INTO workspace_invitations (
+            workspace_id,
+            email,
+            role,
+            token_hash,
+            status,
+            invited_by,
+            expires_at
+        )
+        VALUES ($1, LOWER(TRIM($2)), $3, $4, 'pending', $5, $6)
 
-	return nil
+        ON CONFLICT (workspace_id, (LOWER(email)))
+        DO UPDATE SET
+            email = EXCLUDED.email,
+            role = EXCLUDED.role,
+            token_hash = EXCLUDED.token_hash,
+            status = 'pending',
+            invited_by = EXCLUDED.invited_by,
+            expires_at = EXCLUDED.expires_at,
+            accepted_at = NULL,
+            updated_at = NOW()
+    `
+
+	_, err := r.db.ExecContext(
+		ctx,
+		query,
+		invitation.WorkspaceID,
+		invitation.Email,
+		invitation.Role,
+		invitation.TokenHash,
+		invitation.InvitedBy,
+		invitation.ExpiresAt,
+	)
+
+	return err
 }
+
 func (r *repository) FetchInvitationByID(ctx context.Context, invitationID string) (*WorkspaceInvitation, error) {
 	return nil, nil
 }

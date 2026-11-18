@@ -2,6 +2,10 @@ package workspacemember
 
 import "time"
 
+const (
+	Member = "member"
+)
+
 type WorkspaceMember struct {
 	ID          string    `json:"id"`
 	WorkspaceID string    `json:"workspace_id"`
@@ -26,19 +30,11 @@ type WorkspaceInvitation struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type CreateInvitationDTO struct {
-	WorkspaceID string    `json:"workspace_id"`
-	Email       string    `json:"email"`
-	Role        string    `json:"role"`
-	TokenHash   string    `json:"token_hash"`
-	Status      string    `json:"status"`
-	InvitedBy   string    `json:"invited_by"`
-	ExpiresAt   time.Time `json:"expires_at"`
-}
-
 type SendInviteDTO struct {
-	Email       string `json:"email" validate:"required,email"`
-	WorkspaceID string `json:"workspace_id" validate:"required,valid_uuid4"`
+	Email         string `json:"email" validate:"required,email"`
+	WorkspaceID   string `json:"workspace_id" validate:"required,valid_uuid4"`
+	WorkspaceName string `json:"workspace_name" validate:"required"`
+	InviterName   string `json:"inviter_name" validate:"required"`
 }
 
 // Invitation token should be cryptographically random.

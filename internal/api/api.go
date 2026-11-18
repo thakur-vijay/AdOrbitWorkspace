@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/adorbit/workspace/internal/workspace"
+	workspacemember "github.com/adorbit/workspace/internal/workspaceMember"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"github.com/thakur-vijay/adorbit-go/idempotency"
 	"github.com/thakur-vijay/adorbit-go/middleware"
@@ -12,9 +13,10 @@ import (
 const v1Prefix = "/api/v1"
 
 type Dependencies struct {
-	WorkspaceHandler      *workspace.Handler
-	JWTMiddleware         *middleware.JWTMiddleware
-	IdempotencyMiddleware *idempotency.Middleware
+	WorkspaceHandler       *workspace.Handler
+	WorkspaceMemberHandler *workspacemember.Handler
+	JWTMiddleware          *middleware.JWTMiddleware
+	IdempotencyMiddleware  *idempotency.Middleware
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
@@ -32,6 +34,8 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	v1Mux := http.NewServeMux()
 
 	workspace.RegisterRoutes(v1Mux, dependencies.WorkspaceHandler, dependencies.JWTMiddleware, dependencies.IdempotencyMiddleware)
+
+	workspacemember.RegisterRoutes(v1Mux, dependencies.WorkspaceMemberHandler, dependencies.JWTMiddleware, dependencies.IdempotencyMiddleware)
 
 	mux.Handle(v1Prefix+"/", http.StripPrefix(v1Prefix, v1Mux))
 

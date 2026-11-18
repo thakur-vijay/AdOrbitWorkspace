@@ -19,8 +19,8 @@ CREATE TABLE
 
 CREATE INDEX idx_workspace_invitations_workspace_id ON workspace_invitations (workspace_id);
 
-CREATE INDEX idx_workspace_invitations_email ON workspace_invitations (LOWER(email));
-
 CREATE INDEX idx_workspace_invitations_status ON workspace_invitations (status);
 
 CREATE INDEX idx_workspace_invitations_expires_at ON workspace_invitations (expires_at);
+
+CREATE UNIQUE INDEX uq_workspace_invitations_workspace_email ON workspace_invitations (workspace_id, LOWER(email));
